@@ -1,35 +1,47 @@
 import React from 'react';
-import { Calendar } from 'lucide-react';
-import { Project } from '../../types/project';
+import { Schedule } from '../../types/project';
 import { formatDate } from '../../utils/formatters';
-import { calculateScheduleDeviation } from '../../utils/calculations';
 import clsx from 'clsx';
 
 interface ProjectScheduleProps {
-  project: Project;
+  schedule: Schedule;
 }
 
-export function ProjectSchedule({ project }: ProjectScheduleProps) {
-  const { isDelayed, deviationText } = calculateScheduleDeviation(project);
+export function ProjectSchedule({ schedule }: ProjectScheduleProps) {
+  const now = new Date();
+  const totalDuration = schedule.end.getTime() - schedule.start.getTime();
+  const elapsed = now.getTime() - schedule.start.getTime();
+  const percentage = Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
   
+  const status = schedule.deviation > 10 ? 'red' :
+                schedule.deviation > 5 ? 'amber' :
+                'green';
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <div className="flex items-center">
-          <Calendar className="h-4 w-4 mr-2" />
-          <span>Schedule</span>
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <span className="text-sm font-medium text-gray-700">Schedule</span>
+        <div className="text-right">
+          <span className="text-sm font-medium text-gray-900">
+            {formatDate(schedule.start)} - {formatDate(schedule.end)}
+          </span>
+          {schedule.deviation > 0 && (
+            <p className="text-xs text-red-600">
+              {schedule.deviation} days behind
+            </p>
+          )}
         </div>
-        <span className={clsx(
-          'font-medium',
-          isDelayed ? 'text-red-600' : 'text-green-600'
-        )}>
-          {deviationText}
-        </span>
       </div>
-      
-      <div className="flex justify-between text-xs text-gray-500">
-        <span>Start: {formatDate(project.schedule.start)}</span>
-        <span>End: {formatDate(project.schedule.end)}</span>
+      <div className="h-2 bg-gray-100 rounded-full">
+        <div
+          className={clsx(
+            'h-full rounded-full transition-all duration-300',
+            status === 'red' ? 'bg-red-500' :
+            status === 'amber' ? 'bg-yellow-500' :
+            'bg-green-500'
+          )}
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </div>
   );
