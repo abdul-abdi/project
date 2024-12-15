@@ -1,192 +1,293 @@
-import React from 'react';
-import { Calendar, Users, AlertTriangle, MessageSquare, FileText, Share2 } from 'lucide-react';
-import { useModal } from '../../hooks/useModal';
+import React, { useState } from 'react';
+import {
+  MoreHorizontal,
+  Edit2,
+  Trash2,
+  Share2,
+  Star,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Archive,
+  Copy
+} from 'lucide-react';
+import { Project, RAGStatus } from '../../types/project';
+import { useProjects } from '../../hooks/useProjects';
 import { Modal } from '../common/Modal';
-import { Project } from '../../types/project';
+import { useModal } from '../../hooks/useModal';
+import { Tooltip } from '../common/Tooltip';
+import clsx from 'clsx';
 
 interface ProjectActionsProps {
   project: Project;
+  placement?: 'card' | 'details';
 }
 
-export function ProjectActions({ project }: ProjectActionsProps) {
-  const timelineModal = useModal();
-  const teamModal = useModal();
-  const riskModal = useModal();
-  const commentsModal = useModal();
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  onClick: () => void;
+  color?: string;
+  disabled?: boolean;
+  tooltip?: string;
+}
+
+export function ProjectActions({ project, placement = 'card' }: ProjectActionsProps) {
+  const { favorites, toggleFavorite } = useProjects();
+  const [showActions, setShowActions] = useState(false);
+  const deleteModal = useModal();
+  const archiveModal = useModal();
+  const shareModal = useModal();
+
+  const isFavorite = favorites.has(project.id);
+
+  const handleStatusChange = (status: RAGStatus) => {
+    // This would be handled by your project update logic
+    console.log(`Changing status to ${status}`);
+  };
+
+  const handleDelete = () => {
+    // This would be handled by your project deletion logic
+    console.log('Deleting project');
+    deleteModal.close();
+  };
+
+  const handleArchive = () => {
+    // This would be handled by your project archival logic
+    console.log('Archiving project');
+    archiveModal.close();
+  };
+
+  const handleShare = () => {
+    // This would be handled by your project sharing logic
+    console.log('Sharing project');
+    shareModal.close();
+  };
+
+  const handleDuplicate = () => {
+    // This would be handled by your project duplication logic
+    console.log('Duplicating project');
+  };
+
+  const quickActions: QuickAction[] = [
+    {
+      id: 'favorite',
+      label: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+      icon: Star,
+      onClick: () => toggleFavorite(project.id),
+      color: isFavorite ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400',
+      tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites'
+    },
+    {
+      id: 'status',
+      label: 'Change Status',
+      icon: project.status === 'red' ? AlertCircle :
+            project.status === 'amber' ? Clock :
+            CheckCircle,
+      onClick: () => setShowActions(true),
+      color: project.status === 'red' ? 'text-red-500' :
+             project.status === 'amber' ? 'text-amber-500' :
+             'text-green-500',
+      tooltip: 'Change project status'
+    },
+    {
+      id: 'edit',
+      label: 'Edit Project',
+      icon: Edit2,
+      onClick: () => {/* This would open the edit modal */},
+      tooltip: 'Edit project details'
+    }
+  ];
+
+  const menuActions = [
+    {
+      id: 'share',
+      label: 'Share Project',
+      icon: Share2,
+      onClick: shareModal.open,
+      divider: false
+    },
+    {
+      id: 'duplicate',
+      label: 'Duplicate Project',
+      icon: Copy,
+      onClick: handleDuplicate,
+      divider: true
+    },
+    {
+      id: 'archive',
+      label: 'Archive Project',
+      icon: Archive,
+      onClick: archiveModal.open,
+      divider: false
+    },
+    {
+      id: 'delete',
+      label: 'Delete Project',
+      icon: Trash2,
+      onClick: deleteModal.open,
+      divider: false,
+      danger: true
+    }
+  ];
 
   return (
     <>
-      <div className="space-y-2">
-        <button 
-          onClick={timelineModal.open}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          <span>View Timeline</span>
-        </button>
-        <button 
-          onClick={teamModal.open}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-        >
-          <Users className="h-4 w-4 mr-2" />
-          <span>Team Members</span>
-        </button>
-        <button 
-          onClick={riskModal.open}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-        >
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          <span>Risk Register</span>
-        </button>
-        <button 
-          onClick={commentsModal.open}
-          className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
-        >
-          <MessageSquare className="h-4 w-4 mr-2" />
-          <span>Comments</span>
-        </button>
-        <button className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
-          <FileText className="h-4 w-4 mr-2" />
-          <span>Documents</span>
-        </button>
-        <button className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md">
-          <Share2 className="h-4 w-4 mr-2" />
-          <span>Share</span>
-        </button>
+      <div className="relative">
+        {/* Quick Actions */}
+        {placement === 'card' ? (
+          <div className="flex items-center space-x-1">
+            {quickActions.map(action => (
+              <Tooltip key={action.id} content={action.tooltip}>
+                <button
+                  onClick={action.onClick}
+                  className={clsx(
+                    'p-1 rounded-full hover:bg-gray-100 transition-colors',
+                    action.color || 'text-gray-400 hover:text-gray-600'
+                  )}
+                >
+                  <action.icon className="h-4 w-4" />
+                </button>
+              </Tooltip>
+            ))}
+            <Tooltip content="More actions">
+              <button
+                onClick={() => setShowActions(!showActions)}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </Tooltip>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowActions(!showActions)}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+        )}
+
+        {/* Actions Menu */}
+        {showActions && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+            {menuActions.map((action, index) => (
+              <React.Fragment key={action.id}>
+                <button
+                  onClick={() => {
+                    setShowActions(false);
+                    action.onClick();
+                  }}
+                  className={clsx(
+                    'w-full px-4 py-2 text-sm text-left flex items-center space-x-2',
+                    'hover:bg-gray-50 transition-colors',
+                    action.danger && 'text-red-600 hover:bg-red-50'
+                  )}
+                >
+                  <action.icon className="h-4 w-4" />
+                  <span>{action.label}</span>
+                </button>
+                {action.divider && <div className="my-1 border-t border-gray-100" />}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Confirmation Modals */}
       <Modal
-        isOpen={timelineModal.isOpen}
-        onClose={timelineModal.close}
-        title="Project Timeline"
+        isOpen={deleteModal.isOpen}
+        onClose={deleteModal.close}
+        title="Delete Project"
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">Timeline</h3>
-              <p className="text-sm text-gray-500">Project duration: {project.schedule.start.toLocaleDateString()} - {project.schedule.end.toLocaleDateString()}</p>
-            </div>
-          </div>
-          <div className="border-l-2 border-gray-200 pl-4 space-y-6">
-            <div className="relative">
-              <div className="absolute -left-[21px] top-1 h-4 w-4 rounded-full bg-green-500 border-2 border-white" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Project Start</p>
-                <p className="text-xs text-gray-500">{project.schedule.start.toLocaleDateString()}</p>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute -left-[21px] top-1 h-4 w-4 rounded-full bg-blue-500 border-2 border-white" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Current Progress</p>
-                <p className="text-xs text-gray-500">{project.completion}% Complete</p>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="absolute -left-[21px] top-1 h-4 w-4 rounded-full bg-gray-300 border-2 border-white" />
-              <div>
-                <p className="text-sm font-medium text-gray-900">Project End</p>
-                <p className="text-xs text-gray-500">{project.schedule.end.toLocaleDateString()}</p>
-              </div>
-            </div>
+          <p className="text-sm text-gray-500">
+            Are you sure you want to delete this project? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={deleteModal.close}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              Delete Project
+            </button>
           </div>
         </div>
       </Modal>
 
       <Modal
-        isOpen={teamModal.isOpen}
-        onClose={teamModal.close}
-        title="Team Members"
+        isOpen={archiveModal.isOpen}
+        onClose={archiveModal.close}
+        title="Archive Project"
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Project Team</h3>
-            <button className="text-sm text-blue-600 hover:text-blue-700">Add Member</button>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-medium">JD</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">John Doe</p>
-                  <p className="text-xs text-gray-500">Project Manager</p>
-                </div>
-              </div>
-              <button className="text-sm text-gray-500 hover:text-gray-700">Remove</button>
-            </div>
+          <p className="text-sm text-gray-500">
+            Archive this project? It can be restored later from the archives.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={archiveModal.close}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleArchive}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+            >
+              Archive Project
+            </button>
           </div>
         </div>
       </Modal>
 
       <Modal
-        isOpen={riskModal.isOpen}
-        onClose={riskModal.close}
-        title="Risk Register"
+        isOpen={shareModal.isOpen}
+        onClose={shareModal.close}
+        title="Share Project"
       >
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Project Risks</h3>
-            <button className="text-sm text-blue-600 hover:text-blue-700">Add Risk</button>
-          </div>
-          <div className="space-y-3">
-            <div className="p-3 border border-red-200 bg-red-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-red-700">High Risk</span>
-                <span className="text-xs text-red-600">Added 2 days ago</span>
-              </div>
-              <p className="text-sm text-red-600">Resource constraints may impact delivery timeline</p>
-            </div>
-            <div className="p-3 border border-amber-200 bg-amber-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-amber-700">Medium Risk</span>
-                <span className="text-xs text-amber-600">Added 5 days ago</span>
-              </div>
-              <p className="text-sm text-amber-600">Potential budget overrun in Q3</p>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={commentsModal.isOpen}
-        onClose={commentsModal.close}
-        title="Comments"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Project Comments</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex space-x-3">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">JD</span>
-                </div>
-              </div>
-              <div className="flex-1">
-                <div className="bg-gray-100 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-900">John Doe</span>
-                    <span className="text-xs text-gray-500">2 hours ago</span>
-                  </div>
-                  <p className="text-sm text-gray-600">Latest progress update: We've completed the initial phase ahead of schedule.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <textarea
-              placeholder="Add a comment..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
+          <div>
+            <label htmlFor="shareEmail" className="block text-sm font-medium text-gray-700">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="shareEmail"
+              placeholder="Enter email address"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
-            <div className="mt-2 flex justify-end">
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
-                Post Comment
-              </button>
-            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Permission Level
+            </label>
+            <select className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+              <option value="view">View Only</option>
+              <option value="edit">Can Edit</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={shareModal.close}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleShare}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+            >
+              Share
+            </button>
           </div>
         </div>
       </Modal>

@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
-import { Project, Risk, TeamMember } from '../../types/project';
-import { Tabs, Tab } from '../common/Tabs';
-import { ProjectProgress } from './ProjectProgress';
-import { ProjectBudget } from './ProjectBudget';
-import { ProjectSchedule } from './ProjectSchedule';
+import { Project } from '../../types/project';
+import { Tabs, TabPanel } from '../common/Tabs';
 import { RAGSection } from './RAGSection';
-import { formatDate, formatRelativeTime, formatCurrency } from '../../utils/formatters';
-import { Calendar, Users, FileText, AlertTriangle, Link2, ChevronRight } from 'lucide-react';
-import clsx from 'clsx';
+import { ProjectProgress } from './ProjectProgress';
+import { ProjectSchedule } from './ProjectSchedule';
+import { ProjectBudget } from './ProjectBudget';
+import { ProjectStaffing } from './ProjectStaffing';
+import { 
+  BarChart3, 
+  Calendar, 
+  Users, 
+  DollarSign,
+  MessageSquare,
+  AlertCircle,
+  CheckCircle2,
+  Clock
+} from 'lucide-react';
+import { formatDate } from '../../utils/formatters';
 
 interface ProjectDetailsProps {
   project: Project;
@@ -16,198 +25,153 @@ interface ProjectDetailsProps {
 export function ProjectDetails({ project }: ProjectDetailsProps) {
   const [activeTab, setActiveTab] = useState('overview');
 
-  const renderTeamMember = (member: TeamMember) => (
-    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <div className="flex items-center space-x-3">
-        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-          {member.name.charAt(0)}
-        </div>
-        <div>
-          <p className="font-medium text-gray-900">{member.name}</p>
-          <p className="text-sm text-gray-500">{member.role}</p>
-        </div>
-      </div>
-      <span className="text-sm text-gray-500">{member.allocation}%</span>
-    </div>
-  );
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: <BarChart3 /> },
+    { id: 'schedule', label: 'Schedule', icon: <Calendar /> },
+    { id: 'budget', label: 'Budget', icon: <DollarSign /> },
+    { id: 'team', label: 'Team', icon: <Users /> },
+  ];
 
-  const renderRisk = (risk: Risk) => (
-    <div key={risk.id} className="p-4 border border-gray-200 rounded-lg">
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1">
-          <p className="font-medium text-gray-900">{risk.description}</p>
-          {risk.owner && (
-            <p className="text-sm text-gray-500">Owner: {risk.owner}</p>
-          )}
-        </div>
-        <div className="flex space-x-2">
-          <span className={clsx(
-            "px-2 py-1 text-xs font-medium rounded-full",
-            risk.impact === 'red' ? 'bg-red-100 text-red-800' :
-            risk.impact === 'amber' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-green-100 text-green-800'
-          )}>
-            Impact: {risk.impact.toUpperCase()}
-          </span>
-          <span className={clsx(
-            "px-2 py-1 text-xs font-medium rounded-full",
-            risk.probability === 'red' ? 'bg-red-100 text-red-800' :
-            risk.probability === 'amber' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-green-100 text-green-800'
-          )}>
-            Probability: {risk.probability.toUpperCase()}
-          </span>
-        </div>
-      </div>
-      {risk.mitigationPlan && (
-        <p className="text-sm text-gray-600 mt-2">
-          <strong>Mitigation:</strong> {risk.mitigationPlan}
-        </p>
-      )}
-      {risk.dueDate && (
-        <p className="text-sm text-gray-500 mt-1">
-          Due: {formatDate(risk.dueDate)}
-        </p>
-      )}
-    </div>
-  );
+  const stakeholderDetails = project.stakeholderDetails || {
+    satisfaction: 85,
+    keyFeedback: ['Positive engagement from key stakeholders', 'Regular updates appreciated']
+  };
+
+  const scheduleDetails = project.scheduleDetails || {
+    milestones: [
+      { name: 'Planning', date: new Date(), status: 'green' },
+      { name: 'Development', date: new Date(), status: project.schedule.deviation > 5 ? 'amber' : 'green' }
+    ]
+  };
+
+  const budgetDetails = project.budgetDetails || {
+    breakdown: [
+      { category: 'Development', allocated: project.budget.allocated * 0.6, spent: project.budget.spent * 0.6 },
+      { category: 'Testing', allocated: project.budget.allocated * 0.4, spent: project.budget.spent * 0.4 }
+    ]
+  };
+
+  const staffingDetails = project.staffingDetails || {
+    required: 10,
+    current: 8,
+    risks: ['Need additional senior developers', 'High demand period approaching']
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center space-x-3 mb-2">
-            <h2 className="text-xl font-semibold text-gray-900">{project.name}</h2>
-            {project.priority && (
-              <span className={clsx(
-                "px-2 py-1 text-xs font-medium rounded-full",
-                project.priority === 'high' ? 'bg-red-100 text-red-800' :
-                project.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-green-100 text-green-800'
-              )}>
-                {project.priority.charAt(0).toUpperCase() + project.priority.slice(1)} Priority
-              </span>
-            )}
+      {/* Quick Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-blue-600"><Clock className="h-5 w-5" /></span>
+            <span className="text-sm font-medium text-blue-600">{project.completion}%</span>
           </div>
-          <p className="text-gray-500">
-            Last updated {formatRelativeTime(project.lastUpdated)}
-          </p>
+          <div className="mt-2">
+            <div className="text-sm text-gray-500">Progress</div>
+            <ProjectProgress value={project.completion} />
+          </div>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          Edit Project
-        </button>
+        <div className="bg-green-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-green-600"><CheckCircle2 className="h-5 w-5" /></span>
+            <span className="text-sm font-medium text-green-600">
+              {scheduleDetails.milestones.filter(m => m.status === 'green').length}
+            </span>
+          </div>
+          <div className="mt-2">
+            <div className="text-sm text-gray-500">Completed Milestones</div>
+          </div>
+        </div>
+        <div className="bg-amber-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-amber-600"><AlertCircle className="h-5 w-5" /></span>
+            <span className="text-sm font-medium text-amber-600">{project.schedule.deviation}%</span>
+          </div>
+          <div className="mt-2">
+            <div className="text-sm text-gray-500">Schedule Deviation</div>
+          </div>
+        </div>
+        <div className="bg-purple-50 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-purple-600"><MessageSquare className="h-5 w-5" /></span>
+            <span className="text-sm font-medium text-purple-600">{stakeholderDetails.satisfaction}%</span>
+          </div>
+          <div className="mt-2">
+            <div className="text-sm text-gray-500">Stakeholder Satisfaction</div>
+          </div>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onChange={setActiveTab}>
-        <Tab value="overview" label="Overview" />
-        <Tab value="timeline" label="Timeline" />
-        <Tab value="team" label="Team" />
-        <Tab value="risks" label="Risks" />
-        <Tab value="documents" label="Documents" />
-      </Tabs>
+      {/* Tabs */}
+      <Tabs 
+        tabs={tabs} 
+        activeTab={activeTab} 
+        onChange={setActiveTab} 
+        variant="pills" 
+      />
 
-      <div className="space-y-6">
-        {activeTab === 'overview' && (
-          <>
-            {project.description && (
-              <div className="prose max-w-none">
-                <p>{project.description}</p>
+      {/* Tab Panels */}
+      <TabPanel id="overview" active={activeTab === 'overview'}>
+        <div className="space-y-6">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-4">Project Information</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <div className="text-sm text-gray-500">Department</div>
+                <div className="font-medium text-gray-900">{project.department}</div>
               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <RAGSection title="Status Overview">
-                <ProjectProgress value={project.completion} />
-                <div className="mt-4 space-y-4">
-                  <ProjectBudget budget={project.budget} />
-                  <ProjectSchedule schedule={project.schedule} />
-                </div>
-              </RAGSection>
-
-              <RAGSection title="Key Metrics">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <Calendar className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-gray-600">Timeline</span>
-                    </div>
-                    <span className="font-medium">
-                      {formatDate(project.schedule.start)} - {formatDate(project.schedule.end)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center">
-                      <Users className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-gray-600">Team Size</span>
-                    </div>
-                    <span className="font-medium">{project.team?.length || 0} members</span>
-                  </div>
-                  {project.dependencies && project.dependencies.length > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center">
-                        <Link2 className="w-5 h-5 text-gray-400 mr-2" />
-                        <span className="text-gray-600">Dependencies</span>
-                      </div>
-                      <span className="font-medium">{project.dependencies.length}</span>
-                    </div>
-                  )}
-                </div>
-              </RAGSection>
+              <div>
+                <div className="text-sm text-gray-500">Owner</div>
+                <div className="font-medium text-gray-900">{project.owner}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Last Updated</div>
+                <div className="font-medium text-gray-900">{formatDate(project.lastUpdated)}</div>
+              </div>
             </div>
-          </>
-        )}
-
-        {activeTab === 'timeline' && (
-          <div className="space-y-4">
-            {project.schedule.milestones?.map((milestone) => (
-              <div key={milestone.id} className="flex items-center p-4 border border-gray-200 rounded-lg">
-                <div className={clsx(
-                  "w-4 h-4 rounded-full mr-4",
-                  milestone.completed ? "bg-green-500" : "bg-gray-300"
-                )} />
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{milestone.name}</h4>
-                  {milestone.description && (
-                    <p className="text-sm text-gray-500">{milestone.description}</p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">{formatDate(milestone.date)}</p>
-                  <p className="text-sm text-gray-500">{formatRelativeTime(milestone.date)}</p>
-                </div>
-              </div>
-            ))}
           </div>
-        )}
 
-        {activeTab === 'team' && (
           <div className="space-y-4">
-            {project.team?.map(renderTeamMember)}
+            <RAGSection 
+              title="Stakeholder Satisfaction" 
+              status={project.status}
+              description={`Satisfaction Level: ${stakeholderDetails.satisfaction}%`}
+              details={
+                <ul className="mt-2 space-y-1">
+                  {stakeholderDetails.keyFeedback.map((feedback, index) => (
+                    <li key={index} className="text-sm">• {feedback}</li>
+                  ))}
+                </ul>
+              }
+            />
           </div>
-        )}
+        </div>
+      </TabPanel>
 
-        {activeTab === 'risks' && (
-          <div className="space-y-4">
-            {project.risks?.map(renderRisk)}
-          </div>
-        )}
+      <TabPanel id="schedule" active={activeTab === 'schedule'}>
+        <ProjectSchedule 
+          startDate={project.schedule.start}
+          endDate={project.schedule.end}
+          milestones={scheduleDetails.milestones}
+          deviation={project.schedule.deviation}
+        />
+      </TabPanel>
 
-        {activeTab === 'documents' && (
-          <div className="space-y-4">
-            {project.documents?.map((doc, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="w-5 h-5 text-gray-400 mr-2" />
-                  <span className="text-gray-900">{doc}</span>
-                </div>
-                <button className="text-blue-600 hover:text-blue-700">
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <TabPanel id="budget" active={activeTab === 'budget'}>
+        <ProjectBudget 
+          allocated={project.budget.allocated}
+          spent={project.budget.spent}
+          breakdown={budgetDetails.breakdown}
+        />
+      </TabPanel>
+
+      <TabPanel id="team" active={activeTab === 'team'}>
+        <ProjectStaffing 
+          current={staffingDetails.current}
+          required={staffingDetails.required}
+          risks={staffingDetails.risks}
+        />
+      </TabPanel>
     </div>
   );
 }
